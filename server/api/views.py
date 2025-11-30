@@ -3,7 +3,7 @@ from os import waitid
 from random import randrange
 from typing import Any
 
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 
 from api.models import Cell, Game
@@ -15,7 +15,31 @@ def BuildResponse(data: dict[str, Any], status_code: int):
     return response
 
 
+def BuildHttpResponse(msg: str, code: int):
+    response = HttpResponse(msg)
+    response.status_code = code
+    return response
+
+
 def CollectGameDetails(game: Game) -> dict:
+
+    cells: list[list[dict]] = [
+        [dict() for y in range(game.height)] for x in range(game.width)
+    ]
+
+    for cell in Cell.objects.filter(game=game):
+        cell_details: dict[str, int | bool | None] = {
+            "id": cell.id,
+            "opened": cell.opened,
+            "flagged": cell.flagged,
+            "danger": cell.danger_neighbours if cell.opened else None,
+            "mined": (
+                cell.mined
+                if game.state in (Game.State.GAMEOVER, Game.State.WIN)
+                else None
+            ),
+        }
+        cells[cell.coord_x][cell.coord_y] = cell_details
 
     details = {
         "id": game.id,
@@ -23,33 +47,8 @@ def CollectGameDetails(game: Game) -> dict:
         "width": game.width,
         "height": game.height,
         "mines": game.mines,
-        "cells": None,
+        "cells": cells,
     }
-
-    cells: list[list[dict]] = [
-        [dict() for y in range(game.height)] for x in range(game.width)
-    ]
-    for cell in Cell.objects.filter(game=game):
-
-        cell_details = {
-            "id": cell.id,
-            "opened": cell.opened,
-            "flagged": cell.flagged,
-            "danger": None,
-            "mined": None,
-        }
-
-        # if cell opened, show nearby mine count
-        if cell.opened:
-            cell_details["danger"] = cell.danger_neighbours
-
-        # if game over, show all mined cells
-        if game.State is Game.State.GAMEOVER and cell.mined:
-            cell_details["mined"] = cell.mined
-
-        cells[cell.coord_x][cell.coord_y] = cell_details
-
-    details["cells"] = cells
 
     return details
 
@@ -156,7 +155,6 @@ def openCell(request: HttpRequest, game_id: int, cell_id: int):
                         coord_y=y_index,
                         mined=False,
                         opened=False,
-                        danger_neighbours=0,
                     )
                 except Exception:
                     continue
