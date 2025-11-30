@@ -3,7 +3,7 @@ import type { Cell, Game as GameType } from "../types";
 import { useEffect } from "react";
 
 type Props = {
-	game: GameType | null;
+	game: GameType;
 	cellOpen: (cell: Cell) => void;
 	cellFlag: (cell: Cell) => void;
 };
@@ -24,10 +24,6 @@ const Game = function ({ game, cellOpen, cellFlag }: Props) {
 	useEffect(() => {
 		console.log(game);
 	}, [game]);
-
-	if (game == null) {
-		return <></>;
-	}
 
 	// Had to use flex cause tailwind only loads explicitly defined classes,
 	// when using dynamically defined classes it breaks and grid doesn't work rehehehe

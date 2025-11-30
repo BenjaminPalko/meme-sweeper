@@ -1,5 +1,5 @@
 export type Cell = {
-	id: string;
+	id: number;
 	flagged: boolean;
 	mined: boolean | null;
 } & ({ opened: false } | { opened: true; danger: number });
@@ -7,7 +7,7 @@ export type Cell = {
 type GameState = "PL" | "GO" | "WI";
 
 export type Game = {
-	id: string;
+	id: number;
 	state: GameState;
 	width: number;
 	height: number;
