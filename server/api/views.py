@@ -15,12 +15,6 @@ def BuildResponse(data: dict[str, Any], status_code: int):
     return response
 
 
-def BuildHttpResponse(msg: str, code: int):
-    response = HttpResponse(msg)
-    response.status_code = code
-    return response
-
-
 def CollectGameDetails(game: Game) -> dict:
 
     cells: list[list[dict]] = [
@@ -131,9 +125,6 @@ def details(request: HttpRequest, game_id: int):
 
 
 def openCell(request: HttpRequest, game_id: int, cell_id: int):
-    if request.method != "POST":
-        return BuildResponse({"error": "Unsupported method %s" % request.method}, 405)
-
     def isWinCondition() -> bool:
         width, height, mines = cell.game.width, cell.game.height, cell.game.mines
         return Cell.objects.filter(opened=True).count() == width * height - mines
@@ -163,19 +154,22 @@ def openCell(request: HttpRequest, game_id: int, cell_id: int):
                 if neighbour.danger_neighbours == 0:
                     openNeighbours(neighbour)
 
+    if request.method != "POST":
+        return BuildResponse({"error": "Unsupported method %s" % request.method}, 405)
+
     try:
         cell = Cell.objects.get(id=cell_id)
     except Exception:
         return BuildResponse({"error": "cell not found"}, 404)
 
+    # reject if game state is finished (gameover or win)
+    if cell.game.state in (Game.State.GAMEOVER, Game.State.WIN):
+        return BuildResponse({"error": "game is over"}, 403)
+
     # you cannot modify a cell id not associated with your game
     print(cell.game)
     if cell.game.id is not game_id:
         return BuildResponse({"error": "cell id is not associated with this game"}, 400)
-
-    # reject if game state is finished (gameover or win)
-    if cell.game.state in (Game.State.GAMEOVER, Game.State.WIN):
-        return BuildResponse({"error": "game is over"}, 403)
 
     cell.opened = True
     cell.save()
@@ -207,6 +201,10 @@ def flagCell(request: HttpRequest, game_id: int, cell_id: int):
         cell = Cell.objects.get(id=cell_id)
     except Exception:
         return BuildResponse({"error": "cell not found"}, 404)
+
+    # reject if game state is finished (gameover or win)
+    if cell.game.state in (Game.State.GAMEOVER, Game.State.WIN):
+        return BuildResponse({"error": "game is over"}, 403)
 
     # you cannot modify a cell id not associated with your game
     if cell.game.id is not game_id:
