@@ -139,6 +139,32 @@ def openCell(request: HttpRequest, game_id: int, cell_id: int):
         width, height, mines = cell.game.width, cell.game.height, cell.game.mines
         return Cell.objects.filter(opened=True).count() == width * height - mines
 
+    def openNeighbours(cell: Cell):
+        offsets = [-1, 0, 1]
+        for x_offset in offsets:
+            x_index = cell.coord_x + x_offset
+            if x_index < 0 or x_index >= cell.game.width:
+                continue
+            for y_offset in offsets:
+                y_index = cell.coord_y + y_offset
+                if y_index < 0 or y_index >= cell.game.width:
+                    continue
+                try:
+                    neighbour = Cell.objects.get(
+                        game=cell.game,
+                        coord_x=x_index,
+                        coord_y=y_index,
+                        mined=False,
+                        opened=False,
+                        danger_neighbours=0,
+                    )
+                except Exception:
+                    continue
+                neighbour.opened = True
+                neighbour.save()
+                if neighbour.danger_neighbours == 0:
+                    openNeighbours(neighbour)
+
     try:
         cell = Cell.objects.get(id=cell_id)
     except Exception:
@@ -153,17 +179,22 @@ def openCell(request: HttpRequest, game_id: int, cell_id: int):
     if cell.game.state in (Game.State.GAMEOVER, Game.State.WIN):
         return BuildResponse({"error": "game is over"}, 403)
 
+    cell.opened = True
+    cell.save()
+
     if cell.mined:
         game = cell.game
         game.state = Game.State.GAMEOVER
         game.save()
-    else:
-        cell.opened = True
-        cell.save()
-        if isWinCondition():
-            game = cell.game
-            game.state = Game.State.WIN
-            game.save()
+        return BuildResponse(CollectGameDetails(cell.game), 200)
+
+    if cell.danger_neighbours == 0:
+        openNeighbours(cell)
+
+    if isWinCondition():
+        game = cell.game
+        game.state = Game.State.WIN
+        game.save()
 
     return BuildResponse(CollectGameDetails(cell.game), 200)
 
