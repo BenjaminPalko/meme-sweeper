@@ -1,6 +1,8 @@
 # Mine Sweeper
 
-This is a fun implementation of the classic 'mine sweeper' game, built using Django and React.
+This is a web implementation of the classic 'mine sweeper' game, built using Django and React.
+
+![alt text](https://github.com/BenjaminPalko/mine-sweeper/blob/main/docs/screenshot-20251130-222106.png?raw=true)
 
 ## Setup
 
