@@ -11,6 +11,6 @@ run = "bun install"
 dir = "server"
 run = "poetry install"
 
-[tasks."server:env"]
-dir = "server"
-run = "$(poetry env activate)"
+[tasks."client:dev"]
+dir = "client"
+run = "bun run dev"
