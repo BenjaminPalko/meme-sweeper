@@ -125,9 +125,8 @@ def details(request: HttpRequest, game_id: int):
 
 
 def openCell(request: HttpRequest, game_id: int, cell_id: int):
-    def isWinCondition() -> bool:
-        width, height, mines = cell.game.width, cell.game.height, cell.game.mines
-        return Cell.objects.filter(opened=True).count() == width * height - mines
+    def isWinCondition(game: Game) -> bool:
+        return Cell.objects.filter(game=game, opened=False, mined=False).count() == 0
 
     def openNeighbours(cell: Cell):
         offsets = [-1, 0, 1]
@@ -183,7 +182,8 @@ def openCell(request: HttpRequest, game_id: int, cell_id: int):
     if cell.danger_neighbours == 0:
         openNeighbours(cell)
 
-    if isWinCondition():
+    if isWinCondition(cell.game):
+        print("winner, gangant!")
         game = cell.game
         game.state = Game.State.WIN
         game.save()
